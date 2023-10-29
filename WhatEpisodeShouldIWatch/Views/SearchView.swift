@@ -49,7 +49,8 @@ struct SearchView: View {
                     }
                     .scrollContentBackground(.hidden)
                     .navigationTitle("What Episode Should I Watch?")
-                    .frame(height: 50)
+                    .frame(height: 80)
+                    .padding(2)
                     
                     if searchInFlight {
                         ProgressView()
@@ -57,30 +58,32 @@ struct SearchView: View {
                     } else {
                         List {
                             ForEach(shows) { show in
-                                HStack {
-                                    // TODO handle missing URL
-                                    CachedAsyncImage(url: URL(string: show.posterUrl)) { phase in
-                                        switch phase {
-                                        case .empty:
-                                            ProgressView()
-                                                .progressViewStyle(.circular)
-                                                .frame(width: 70, height: 105)
-                                        case .success(let image):
-                                            image
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 70, height: 105)
-                                                .cornerRadius(5)
-                                        case .failure:
-                                            Image(systemName: "photo")
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 70, height: 105)
-                                        @unknown default:
-                                            EmptyView()
+                                NavigationLink(destination: DetailView(show: show)) {
+                                    HStack {
+                                        // TODO handle missing URL
+                                        CachedAsyncImage(url: URL(string: show.posterUrl)) { phase in
+                                            switch phase {
+                                            case .empty:
+                                                ProgressView()
+                                                    .progressViewStyle(.circular)
+                                                    .frame(width: 70, height: 105)
+                                            case .success(let image):
+                                                image
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 70, height: 105)
+                                                    .cornerRadius(5)
+                                            case .failure:
+                                                Image(systemName: "photo")
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 70, height: 105)
+                                            @unknown default:
+                                                EmptyView()
+                                            }
                                         }
+                                        Text("\(show.title) (\(show.yearStart))")
+                                            .padding(.horizontal)
                                     }
-                                    Text("\(show.title) (\(show.yearStart))")
-                                        .padding(.horizontal)
                                 }
                             }
                         }
@@ -95,13 +98,5 @@ struct SearchView: View {
 }
 
 #Preview {
-    let show = Show(
-        id: "1400",
-        popularity: 1003.531,
-        posterUrl: "https://image.tmdb.org/t/p/original//aCw8ONfyz3AhngVQa1E2Ss4KSUQ.jpg",
-        title: "Seinfeld",
-        yearStart: "1989"
-    )
-    
-    return SearchView(shows: [show])
+    return SearchView(shows: SampleShows)
 }
