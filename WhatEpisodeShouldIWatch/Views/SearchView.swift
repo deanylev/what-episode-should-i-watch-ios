@@ -9,11 +9,17 @@ import SwiftUI
 
 import CachedAsyncImage
 
+struct SeenEpisode {
+    let season: Int
+    let episode: Int
+}
+
 struct SearchView: View {
     @State private var debounceTimer: Timer?
     @State private var search = ""
     @FocusState private var searchFocused
     @State private var searchInFlight = false
+    @State private var seenEpisodes: Dictionary<String, [SeenEpisode]> = [:]
     @State private var shows: [Show]
 
     init(shows: [Show] = []) {
@@ -24,7 +30,7 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color(red: 17 / 255, green: 24 / 255, blue: 39 / 255).ignoresSafeArea()
+                Colour.BACKGROUND.ignoresSafeArea()
                 VStack {
                     Form {
                         TextField("Search for a TV show...", text: $search)
@@ -58,28 +64,33 @@ struct SearchView: View {
                     } else {
                         List {
                             ForEach(shows) { show in
-                                NavigationLink(destination: DetailView(show: show)) {
+                                NavigationLink(destination: DetailView(seenEpisodes: $seenEpisodes, show: show)) {
                                     HStack {
-                                        // TODO handle missing URL
-                                        CachedAsyncImage(url: URL(string: show.posterUrl)) { phase in
-                                            switch phase {
-                                            case .empty:
-                                                ProgressView()
-                                                    .progressViewStyle(.circular)
-                                                    .frame(width: 70, height: 105)
-                                            case .success(let image):
-                                                image
-                                                    .resizable()
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: 70, height: 105)
-                                                    .cornerRadius(5)
-                                            case .failure:
-                                                Image(systemName: "photo")
-                                                    .aspectRatio(contentMode: .fit)
-                                                    .frame(width: 70, height: 105)
-                                            @unknown default:
-                                                EmptyView()
+                                        if let posterUrl = show.posterUrl {
+                                            CachedAsyncImage(url: URL(string: posterUrl)) { phase in
+                                                switch phase {
+                                                case .empty:
+                                                    ProgressView()
+                                                        .progressViewStyle(.circular)
+                                                        .frame(width: 70, height: 105)
+                                                case .success(let image):
+                                                    image
+                                                        .resizable()
+                                                        .aspectRatio(contentMode: .fit)
+                                                        .frame(width: 70, height: 105)
+                                                        .cornerRadius(5)
+                                                case .failure:
+                                                    Image(systemName: "photo")
+                                                        .aspectRatio(contentMode: .fit)
+                                                        .frame(width: 70, height: 105)
+                                                @unknown default:
+                                                    EmptyView()
+                                                }
                                             }
+                                        } else {
+                                            Image(systemName: "photo")
+                                                .aspectRatio(contentMode: .fit)
+                                                .frame(width: 70, height: 105)
                                         }
                                         Text("\(show.title) (\(show.yearStart))")
                                             .padding(.horizontal)

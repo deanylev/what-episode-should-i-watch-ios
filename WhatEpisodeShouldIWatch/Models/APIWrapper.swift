@@ -16,28 +16,28 @@ enum FetchError: Error {
 }
 
 struct Show: Decodable, Identifiable {
-    let id: String;
-    let popularity: Float;
-    let posterUrl: String;
-    let title: String;
-    let yearStart: String;
+    let id: String
+    let popularity: Float
+    let posterUrl: String?
+    let title: String
+    let yearStart: String
 }
 
 struct Episode: Decodable {
-    let episode: Int;
-    let plot: String;
-    let posterUrl: String;
-    let rating: String;
-    let season: Int;
-    let showYearEnd: String;
-    let title: String;
-    let totalSeasons: Int;
-    let year: String;
+    let episode: Int
+    let plot: String
+    let posterUrl: String?
+    let rating: String
+    let season: Int
+    let showYearEnd: String?
+    let title: String
+    let totalSeasons: Int
+    let year: String
 }
 
 struct EpisodeShow: Decodable {
-    let episode: Episode;
-    let show: Show;
+    let episode: Episode
+    let show: Show
 }
 
 var SampleShows = [
@@ -92,13 +92,21 @@ struct APIWrapper {
         }
     }
     
-    static func fetchEpisode(id: String, seasonMin: Int? = nil, seasonMax: Int? = nil) async throws -> EpisodeShow {
+    static func fetchEpisode(id: String, seenEpisodes: [SeenEpisode], seasonMin: Int? = nil, seasonMax: Int? = nil) async throws -> EpisodeShow {
         var params: Dictionary<String, String> = [:]
         if seasonMin != nil {
             params["seasonMin"] = String(seasonMin!)
         }
         if seasonMax != nil {
             params["seasonMax"] = String(seasonMax!)
+        }
+        var flattenedSeenEpisodes: [[Int]] = []
+        seenEpisodes.forEach { seenEpisode in
+            flattenedSeenEpisodes.append([seenEpisode.season, seenEpisode.episode])
+        }
+
+        if let data = try? JSONSerialization.data(withJSONObject: flattenedSeenEpisodes, options: []) {
+            params["history"] = String(data: data, encoding: String.Encoding.utf8)
         }
         return try await fetch(path: "episodes/\(id)", params: params)
     }

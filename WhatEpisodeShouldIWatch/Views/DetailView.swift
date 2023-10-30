@@ -7,39 +7,66 @@
 
 import SwiftUI
 
-import CachedAsyncImage
+let defaults = UserDefaults.standard
 
 struct DetailView: View {
     @State var episode: Episode? = nil
     @State var episodeHistory: [Episode] = []
     @State var episodeHistoryIndex = -1
     @State var isPresentRatingWebView = false
-    // TODO save in store and load
-    @State var seasonMax = 1
+    @Binding var seenEpisodes: Dictionary<String, [SeenEpisode]>
+    @State var seasonMax = -1
     @State var seasonMin = 1
-    let show: Show;
+    let show: Show
     
+    @MainActor
     func fetchEpisode(initial: Bool) {
         episode = nil
         Task {
             do {
+                if seenEpisodes[show.id] == nil {
+                    seenEpisodes[show.id] = []
+                }
+                
                 if (initial) {
-                    episode = try await APIWrapper.fetchEpisode(id: show.id).episode
-                    seasonMax = episode!.totalSeasons
+                    episode = try await APIWrapper.fetchEpisode(id: show.id, seenEpisodes: seenEpisodes[show.id]!).episode
+                    if seasonMax == -1 {
+                        seasonMax = episode!.totalSeasons
+                    }
                 } else {
-                    episode = try await APIWrapper.fetchEpisode(id: show.id, seasonMin: seasonMin, seasonMax: seasonMax).episode
+                    episode = try await APIWrapper.fetchEpisode(id: show.id, seenEpisodes: seenEpisodes[show.id]!, seasonMin: seasonMin, seasonMax: seasonMax).episode
                 }
                 episodeHistory.append(episode!)
                 episodeHistoryIndex = episodeHistory.count - 1
+                
+                let seen = seenEpisodes[show.id]?.contains(where: { seenEpisode in
+                    seenEpisode.season == episode!.season && seenEpisode.episode == episode!.episode
+                })
+                // we have seen this episode before which means we have exhausted the whole series!
+                // clear this current season from the seen list
+                if seen! {
+                    seenEpisodes[show.id] = seenEpisodes[show.id]!.filter { seenEpisode in
+                        seenEpisode.season != episode!.season
+                    }
+                }
+                
+                seenEpisodes[show.id]!.append(SeenEpisode(
+                    season: episode!.season,
+                    episode: episode!.episode
+                ))
             } catch {
                 print(error)
             }
         }
     }
     
+    func persistSeasonRange() {
+        defaults.set(["seasonMin": seasonMin, "seasonMax": seasonMax], forKey: "range-\(show.id)")
+    }
+    
     var body: some View {
         ZStack {
-            Color(red: 17 / 255, green: 24 / 255, blue: 39 / 255).ignoresSafeArea()
+            Colour.BACKGROUND.ignoresSafeArea()
             VStack(alignment: .leading) {
                 if episode == nil {
                     ProgressView()
@@ -51,17 +78,20 @@ struct DetailView: View {
                                 Text("Season \(season)").tag(season)
                             }
                         }
+                        .onChange(of: seasonMin) { persistSeasonRange() }
                         Text("To")
                         Picker("", selection: $seasonMax) {
                             ForEach(seasonMin...episode!.totalSeasons, id: \.self) { season in
                                 Text("Season \(season)").tag(season)
                             }
                         }
+                        .onChange(of: seasonMax) { persistSeasonRange() }
                         Button(action: {
                             fetchEpisode(initial: false)
                         }) {
                             Text("Another!")
                         }
+                        .foregroundColor(Colour.ACCENT)
                     }
                     Text("Season \(episode!.season), Episode \(episode!.episode)")
                         .bold()
@@ -108,7 +138,7 @@ struct DetailView: View {
                         .padding(3)
                     HStack {
                         Spacer()
-                        CachedAsyncImage(url: URL(string: episode!.posterUrl)) { phase in
+                        AsyncImage(url: URL(string: episode!.posterUrl)) { phase in
                             switch phase {
                             case .empty:
                                 ProgressView()
@@ -136,11 +166,17 @@ struct DetailView: View {
             .navigationTitle(show.title)
         }
         .onAppear() {
-            fetchEpisode(initial: true)
+            if let seasonRange = defaults.dictionary(forKey: "range-\(show.id)") as? Dictionary<String, Int> {
+                seasonMin = seasonRange["seasonMin"]!
+                seasonMax = seasonRange["seasonMax"]!
+                fetchEpisode(initial: false)
+            } else {
+                fetchEpisode(initial: true)
+            }
         }
     }
 }
 
 #Preview {
-    DetailView(show: SampleShows[0])
+    DetailView(seenEpisodes: .constant([:]), show: SampleShows[0])
 }
