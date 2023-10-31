@@ -41,6 +41,7 @@ struct SearchView: View {
                             .onChange(of: search) {
                                 debounceTimer?.invalidate()
                                 debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+                                    debounceTimer = nil
                                     Task {
                                         do {
                                             searchInFlight = true
@@ -54,51 +55,59 @@ struct SearchView: View {
                             }
                     }
                     .scrollContentBackground(.hidden)
-                    .navigationTitle("What Episode Should I Watch?")
+                    .navigationTitle("Select Show")
                     .frame(height: 80)
                     .padding(2)
                     
                     if searchInFlight {
                         ProgressView()
                             .progressViewStyle(.circular)
-                    } else {
-                        List {
-                            ForEach(shows) { show in
-                                NavigationLink(destination: DetailView(seenEpisodes: $seenEpisodes, show: show)) {
-                                    HStack {
-                                        if let posterUrl = show.posterUrl {
-                                            CachedAsyncImage(url: URL(string: posterUrl)) { phase in
-                                                switch phase {
-                                                case .empty:
-                                                    ProgressView()
-                                                        .progressViewStyle(.circular)
-                                                        .frame(width: 70, height: 105)
-                                                case .success(let image):
-                                                    image
-                                                        .resizable()
-                                                        .aspectRatio(contentMode: .fit)
-                                                        .frame(width: 70, height: 105)
-                                                        .cornerRadius(5)
-                                                case .failure:
-                                                    Image(systemName: "photo")
-                                                        .aspectRatio(contentMode: .fit)
-                                                        .frame(width: 70, height: 105)
-                                                @unknown default:
-                                                    EmptyView()
+                            .padding(.vertical)
+                    } else if !search.isEmpty {
+                        if shows.count == 0 {
+                            if debounceTimer == nil {
+                                Text("No Results")
+                                    .padding(.vertical)
+                            }
+                        } else {
+                            List {
+                                ForEach(shows) { show in
+                                    NavigationLink(destination: DetailView(seenEpisodes: $seenEpisodes, show: show)) {
+                                        HStack {
+                                            if let posterUrl = show.posterUrl {
+                                                CachedAsyncImage(url: URL(string: posterUrl)) { phase in
+                                                    switch phase {
+                                                    case .empty:
+                                                        ProgressView()
+                                                            .progressViewStyle(.circular)
+                                                            .frame(width: 70, height: 105)
+                                                    case .success(let image):
+                                                        image
+                                                            .resizable()
+                                                            .aspectRatio(contentMode: .fit)
+                                                            .frame(width: 70, height: 105)
+                                                            .cornerRadius(5)
+                                                    case .failure:
+                                                        Image(systemName: "photo")
+                                                            .aspectRatio(contentMode: .fit)
+                                                            .frame(width: 70, height: 105)
+                                                    @unknown default:
+                                                        EmptyView()
+                                                    }
                                                 }
+                                            } else {
+                                                Image(systemName: "photo")
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .frame(width: 70, height: 105)
                                             }
-                                        } else {
-                                            Image(systemName: "photo")
-                                                .aspectRatio(contentMode: .fit)
-                                                .frame(width: 70, height: 105)
+                                            Text("\(show.title) (\(show.yearStart))")
+                                                .padding(.horizontal)
                                         }
-                                        Text("\(show.title) (\(show.yearStart))")
-                                            .padding(.horizontal)
                                     }
                                 }
                             }
+                            .scrollContentBackground(.hidden)
                         }
-                        .scrollContentBackground(.hidden)
                     }
                     
                     Spacer()

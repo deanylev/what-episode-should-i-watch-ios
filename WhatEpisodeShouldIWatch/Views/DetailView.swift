@@ -138,26 +138,28 @@ struct DetailView: View {
                         .padding(3)
                     HStack {
                         Spacer()
-                        AsyncImage(url: URL(string: episode!.posterUrl)) { phase in
-                            switch phase {
-                            case .empty:
-                                ProgressView()
-                                    .progressViewStyle(.circular)
-                                    .frame(alignment: .center)
-                            case .success(let image):
-                                image
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .scaledToFit()
-                                    .cornerRadius(5)
-                            case .failure:
-                                EmptyView()
-                            @unknown default:
-                                EmptyView()
+                        if let posterUrl = episode!.posterUrl {
+                            AsyncImage(url: URL(string: posterUrl)) { phase in
+                                switch phase {
+                                case .empty:
+                                    ProgressView()
+                                        .progressViewStyle(.circular)
+                                        .frame(alignment: .center)
+                                case .success(let image):
+                                    image
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fit)
+                                        .scaledToFit()
+                                        .cornerRadius(5)
+                                case .failure:
+                                    EmptyView()
+                                @unknown default:
+                                    EmptyView()
+                                }
                             }
+                            .padding(.vertical)
+                            Spacer()
                         }
-                        .padding(.vertical)
-                        Spacer()
                     }
                 }
                 Spacer()
