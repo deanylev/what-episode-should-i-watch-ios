@@ -20,16 +20,16 @@ struct SearchView: View {
     @State private var search = ""
     @FocusState private var searchFocused
     @State private var searchInFlight = false
-    @State private var seenEpisodes: Dictionary<String, [SeenEpisode]> = [:]
+    @State private var seenEpisodes: [String: [SeenEpisode]] = [:]
     @State private var shows: [Show]
-    
-    @State var _spoilerAvoidanceMode: Bool
-    var spoilerAvoidanceMode: Binding<Bool> { Binding(
+
+    @State var spoilerAvoidanceMode: Bool
+    var spoilerAvoidanceModeInternal: Binding<Bool> { Binding(
         get: {
-                return _spoilerAvoidanceMode
+                return spoilerAvoidanceMode
             },
         set: {
-                _spoilerAvoidanceMode = $0
+                spoilerAvoidanceMode = $0
                 defaults.setValue($0, forKey: "spoilerAvoidanceMode")
             }
         )
@@ -37,17 +37,17 @@ struct SearchView: View {
 
     init(shows: [Show] = []) {
         self.shows = shows
-        self._spoilerAvoidanceMode = defaults.bool(forKey: "spoilerAvoidanceMode")
+        self.spoilerAvoidanceMode = defaults.bool(forKey: "spoilerAvoidanceMode")
         UILabel.appearance(whenContainedInInstancesOf: [UINavigationBar.self]).adjustsFontSizeToFitWidth = true
     }
-        
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Colour.BACKGROUND.ignoresSafeArea()
                 VStack {
                     Form {
-                        Toggle("Spoiler Avoidance Mode™", isOn: spoilerAvoidanceMode)
+                        Toggle("Spoiler Avoidance Mode™", isOn: $spoilerAvoidanceMode)
                         TextField("Search for a TV show...", text: $search)
                             .focused($searchFocused)
                             .onAppear {
@@ -73,7 +73,7 @@ struct SearchView: View {
                     .navigationTitle("What Episode Should I Watch?")
                     .frame(height: 130)
                     .padding(2)
-                    
+
                     if searchInFlight {
                         ProgressView()
                             .progressViewStyle(.circular)
@@ -87,7 +87,11 @@ struct SearchView: View {
                         } else {
                             List {
                                 ForEach(shows) { show in
-                                    NavigationLink(destination: DetailView(seenEpisodes: $seenEpisodes, show: show, spoilerAvoidanceMode: $_spoilerAvoidanceMode)) {
+                                    NavigationLink(destination: DetailView(
+                                        seenEpisodes: $seenEpisodes,
+                                        show: show,
+                                        spoilerAvoidanceMode: $spoilerAvoidanceMode)
+                                    ) {
                                         HStack {
                                             if let posterUrl = show.posterUrl {
                                                 CachedAsyncImage(url: URL(string: posterUrl)) { phase in
@@ -124,7 +128,7 @@ struct SearchView: View {
                             .scrollContentBackground(.hidden)
                         }
                     }
-                    
+
                     Spacer()
                 }
             }
@@ -133,5 +137,5 @@ struct SearchView: View {
 }
 
 #Preview {
-    return SearchView(shows: SampleShows)
+    return SearchView(shows: sampleShows)
 }

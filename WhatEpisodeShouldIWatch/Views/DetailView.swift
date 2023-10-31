@@ -9,16 +9,16 @@ import SwiftUI
 
 struct DetailView: View {
     let defaults = UserDefaults.standard
-    @State var episode: Episode? = nil
+    @State var episode: Episode?
     @State var episodeHistory: [Episode] = []
     @State var episodeHistoryIndex = -1
     @State var isPresentRatingWebView = false
-    @Binding var seenEpisodes: Dictionary<String, [SeenEpisode]>
+    @Binding var seenEpisodes: [String: [SeenEpisode]]
     @State var seasonMax = -1
     @State var seasonMin = 1
     let show: Show
     @Binding var spoilerAvoidanceMode: Bool
-    
+
     @MainActor
     func fetchEpisode(initial: Bool) {
         episode = nil
@@ -27,18 +27,26 @@ struct DetailView: View {
                 if seenEpisodes[show.id] == nil {
                     seenEpisodes[show.id] = []
                 }
-                
-                if (initial) {
-                    episode = try await APIWrapper.fetchEpisode(id: show.id, seenEpisodes: seenEpisodes[show.id]!).episode
+
+                if initial {
+                    episode = try await APIWrapper.fetchEpisode(
+                        id: show.id,
+                        seenEpisodes: seenEpisodes[show.id]!
+                    ).episode
                     if seasonMax == -1 {
                         seasonMax = episode!.totalSeasons
                     }
                 } else {
-                    episode = try await APIWrapper.fetchEpisode(id: show.id, seenEpisodes: seenEpisodes[show.id]!, seasonMin: seasonMin, seasonMax: seasonMax).episode
+                    episode = try await APIWrapper.fetchEpisode(
+                        id: show.id,
+                        seenEpisodes: seenEpisodes[show.id]!,
+                        seasonMin: seasonMin,
+                        seasonMax: seasonMax
+                    ).episode
                 }
                 episodeHistory.append(episode!)
                 episodeHistoryIndex = episodeHistory.count - 1
-                
+
                 let seen = seenEpisodes[show.id]?.contains(where: { seenEpisode in
                     seenEpisode.season == episode!.season && seenEpisode.episode == episode!.episode
                 })
@@ -49,7 +57,7 @@ struct DetailView: View {
                         seenEpisode.season != episode!.season
                     }
                 }
-                
+
                 seenEpisodes[show.id]!.append(SeenEpisode(
                     season: episode!.season,
                     episode: episode!.episode
@@ -59,11 +67,11 @@ struct DetailView: View {
             }
         }
     }
-    
+
     func persistSeasonRange() {
         defaults.set(["seasonMin": seasonMin, "seasonMax": seasonMax], forKey: "range-\(show.id)")
     }
-    
+
     var body: some View {
         ZStack {
             Colour.BACKGROUND.ignoresSafeArea()
@@ -90,25 +98,25 @@ struct DetailView: View {
                                 .onChange(of: seasonMax) { persistSeasonRange() }
                                 Button(action: {
                                     fetchEpisode(initial: false)
-                                }) {
+                                }, label: {
                                     Text("Another!")
-                                }
+                                })
                                 .foregroundColor(Colour.ACCENT)
                             }
                             HStack {
                                 Button(action: {
                                     episodeHistoryIndex -= 1
                                     episode = episodeHistory[episodeHistoryIndex]
-                                }) {
+                                }, label: {
                                     Text("👈 Previous")
-                                }
+                                })
                                 .disabled(episodeHistoryIndex == 0)
                                 Button(action: {
                                     episodeHistoryIndex += 1
                                     episode = episodeHistory[episodeHistoryIndex]
-                                }) {
+                                }, label: {
                                     Text("👉 Next")
-                                }
+                                })
                                 .disabled(episodeHistoryIndex == episodeHistory.count - 1)
                             }
                             .padding(.vertical)
@@ -124,14 +132,16 @@ struct DetailView: View {
                                 Text("TMDB Rating:")
                                 Button(action: {
                                     isPresentRatingWebView = true
-                                }) {
+                                }, label: {
                                     Text(episode!.rating)
                                         .underline()
                                         .foregroundColor(Color.primary)
-                                }
+                                })
                                 .sheet(isPresented: $isPresentRatingWebView, content: {
                                     NavigationStack {
+                                        // swiftlint:disable line_length
                                         WebView(url: URL(string: "https://www.themoviedb.org/tv/\(show.id)/season/\(episode!.season)/episode/\(episode!.episode)")!)
+                                        // swiftlint:enable line_length
                                             .ignoresSafeArea()
                                             .navigationTitle("View TMDB")
                                             .navigationBarTitleDisplayMode(.inline)
@@ -182,8 +192,8 @@ struct DetailView: View {
             .padding()
             .navigationTitle("\(show.title) (\(show.yearStart))")
         }
-        .onAppear() {
-            if let seasonRange = defaults.dictionary(forKey: "range-\(show.id)") as? Dictionary<String, Int> {
+        .onAppear {
+            if let seasonRange = defaults.dictionary(forKey: "range-\(show.id)") as? [String: Int] {
                 seasonMin = seasonRange["seasonMin"]!
                 seasonMax = seasonRange["seasonMax"]!
                 fetchEpisode(initial: false)
@@ -195,5 +205,5 @@ struct DetailView: View {
 }
 
 #Preview {
-    DetailView(seenEpisodes: .constant([:]), show: SampleShows[0], spoilerAvoidanceMode: .constant(false))
+    DetailView(seenEpisodes: .constant([:]), show: sampleShows[0], spoilerAvoidanceMode: .constant(false))
 }

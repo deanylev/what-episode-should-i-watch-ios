@@ -7,7 +7,7 @@
 
 import Foundation
 
-let API_URL = "whatepisodeshouldiwatch.com"
+let apiUrl = "whatepisodeshouldiwatch.com"
 
 enum FetchError: Error {
     case invalidURL
@@ -40,7 +40,7 @@ struct EpisodeShow: Decodable {
     let show: Show
 }
 
-var SampleShows = [
+var sampleShows = [
     Show(
         id: "1400",
         popularity: 1003.531,
@@ -50,7 +50,7 @@ var SampleShows = [
     )
 ]
 
-var SampleEpisodes = [
+var sampleEpisodes = [
     Episode(
         episode: 8,
         plot: "George is hot for a potential baldness remedy, and for Elaine after she plays a joke on Jerry.",
@@ -65,11 +65,11 @@ var SampleEpisodes = [
 ]
 
 struct APIWrapper {
-    static func fetch<T: Decodable>(path: String, params: Dictionary<String, String>) async throws -> T {
+    static func fetch<T: Decodable>(path: String, params: [String: String]) async throws -> T {
         var url: URL? {
             var components = URLComponents()
             components.scheme = "https"
-            components.host = API_URL
+            components.host = apiUrl
             components.path = "/\(path)"
             components.queryItems = params.map({ (key: String, value: String) in
                 URLQueryItem(name: key, value: value)
@@ -91,9 +91,14 @@ struct APIWrapper {
             throw FetchError.decodingError
         }
     }
-    
-    static func fetchEpisode(id: String, seenEpisodes: [SeenEpisode], seasonMin: Int? = nil, seasonMax: Int? = nil) async throws -> EpisodeShow {
-        var params: Dictionary<String, String> = [:]
+
+    static func fetchEpisode(
+        id: String,
+        seenEpisodes: [SeenEpisode],
+        seasonMin: Int? = nil,
+        seasonMax: Int? = nil
+    ) async throws -> EpisodeShow {
+        var params: [String: String] = [:]
         if seasonMin != nil {
             params["seasonMin"] = String(seasonMin!)
         }
@@ -112,10 +117,10 @@ struct APIWrapper {
     }
 
     static func fetchShows(search: String) async throws -> [Show] {
-        if (search.isEmpty) {
+        if search.isEmpty {
             return []
         }
-        
+
         return try await fetch(path: "shows", params: ["q": search])
     }
 }
