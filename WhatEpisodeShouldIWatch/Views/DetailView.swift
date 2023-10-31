@@ -7,9 +7,8 @@
 
 import SwiftUI
 
-let defaults = UserDefaults.standard
-
 struct DetailView: View {
+    let defaults = UserDefaults.standard
     @State var episode: Episode? = nil
     @State var episodeHistory: [Episode] = []
     @State var episodeHistoryIndex = -1
@@ -18,6 +17,7 @@ struct DetailView: View {
     @State var seasonMax = -1
     @State var seasonMin = 1
     let show: Show
+    @Binding var spoilerAvoidanceMode: Bool
     
     @MainActor
     func fetchEpisode(initial: Bool) {
@@ -72,100 +72,115 @@ struct DetailView: View {
                     ProgressView()
                         .progressViewStyle(.circular)
                 } else {
-                    HStack {
-                        Picker("", selection: $seasonMin) {
-                            ForEach(1...seasonMax, id: \.self) { season in
-                                Text("Season \(season)").tag(season)
-                            }
-                        }
-                        .onChange(of: seasonMin) { persistSeasonRange() }
-                        Text("To")
-                        Picker("", selection: $seasonMax) {
-                            ForEach(seasonMin...episode!.totalSeasons, id: \.self) { season in
-                                Text("Season \(season)").tag(season)
-                            }
-                        }
-                        .onChange(of: seasonMax) { persistSeasonRange() }
-                        Button(action: {
-                            fetchEpisode(initial: false)
-                        }) {
-                            Text("Another!")
-                        }
-                        .foregroundColor(Colour.ACCENT)
-                    }
-                    Text("Season \(episode!.season), Episode \(episode!.episode)")
-                        .bold()
-                        .font(.title)
-                    Text("\"\(episode!.title)\" (\(episode!.year))")
-                    HStack {
-                        Button(action: {
-                            episodeHistoryIndex -= 1
-                            episode = episodeHistory[episodeHistoryIndex]
-                        }) {
-                            Text("👈 Previous Suggestion")
-                        }
-                        .disabled(episodeHistoryIndex == 0)
-                        Button(action: {
-                            episodeHistoryIndex += 1
-                            episode = episodeHistory[episodeHistoryIndex]
-                        }) {
-                            Text("👉 Next Suggestion")
-                        }
-                        .disabled(episodeHistoryIndex == episodeHistory.count - 1)
-                    }
-                    .padding(.vertical)
-                    HStack {
-                        Text("TMDB Rating:")
-                        Button(action: {
-                            isPresentRatingWebView = true
-                        }) {
-                            Text(episode!.rating)
-                                .underline()
-                                .foregroundColor(Color.primary)
-                        }
-                        .sheet(isPresented: $isPresentRatingWebView, content: {
-                            NavigationStack {
-                                WebView(url: URL(string: "https://www.themoviedb.org/tv/\(show.id)/season/\(episode!.season)/episode/\(episode!.episode)")!)
-                                    .ignoresSafeArea()
-                                    .navigationTitle("View TMDB")
-                                    .navigationBarTitleDisplayMode(.inline)
-                            }
-                        })
-                    }
-                    .bold()
-                    .padding(3)
-                    Text(episode!.plot)
-                        .padding(3)
-                    HStack {
-                        Spacer()
-                        if let posterUrl = episode!.posterUrl {
-                            AsyncImage(url: URL(string: posterUrl)) { phase in
-                                switch phase {
-                                case .empty:
-                                    ProgressView()
-                                        .progressViewStyle(.circular)
-                                        .frame(alignment: .center)
-                                case .success(let image):
-                                    image
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .scaledToFit()
-                                        .cornerRadius(5)
-                                case .failure:
-                                    EmptyView()
-                                @unknown default:
-                                    EmptyView()
+                    ScrollView {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Picker("", selection: $seasonMin) {
+                                    ForEach(1...seasonMax, id: \.self) { season in
+                                        Text("Season \(season)").tag(season)
+                                    }
                                 }
+                                .onChange(of: seasonMin) { persistSeasonRange() }
+                                Text("To")
+                                Picker("", selection: $seasonMax) {
+                                    ForEach(seasonMin...episode!.totalSeasons, id: \.self) { season in
+                                        Text("Season \(season)").tag(season)
+                                    }
+                                }
+                                .onChange(of: seasonMax) { persistSeasonRange() }
+                                Button(action: {
+                                    fetchEpisode(initial: false)
+                                }) {
+                                    Text("Another!")
+                                }
+                                .foregroundColor(Colour.ACCENT)
+                            }
+                            HStack {
+                                Button(action: {
+                                    episodeHistoryIndex -= 1
+                                    episode = episodeHistory[episodeHistoryIndex]
+                                }) {
+                                    Text("👈 Previous")
+                                }
+                                .disabled(episodeHistoryIndex == 0)
+                                Button(action: {
+                                    episodeHistoryIndex += 1
+                                    episode = episodeHistory[episodeHistoryIndex]
+                                }) {
+                                    Text("👉 Next")
+                                }
+                                .disabled(episodeHistoryIndex == episodeHistory.count - 1)
                             }
                             .padding(.vertical)
-                            Spacer()
+                            Toggle("Spoiler Avoidance Mode™", isOn: $spoilerAvoidanceMode)
+                                .padding([.trailing], 2)
+                            Text("Season \(episode!.season), Episode \(episode!.episode)")
+                                .bold()
+                                .font(.title)
+                            if !spoilerAvoidanceMode {
+                                Text("\"\(episode!.title)\" (\(episode!.year))")
+                            }
+                            HStack {
+                                Text("TMDB Rating:")
+                                Button(action: {
+                                    isPresentRatingWebView = true
+                                }) {
+                                    Text(episode!.rating)
+                                        .underline()
+                                        .foregroundColor(Color.primary)
+                                }
+                                .sheet(isPresented: $isPresentRatingWebView, content: {
+                                    NavigationStack {
+                                        WebView(url: URL(string: "https://www.themoviedb.org/tv/\(show.id)/season/\(episode!.season)/episode/\(episode!.episode)")!)
+                                            .ignoresSafeArea()
+                                            .navigationTitle("View TMDB")
+                                            .navigationBarTitleDisplayMode(.inline)
+                                    }
+                                })
+                            }
+                            .bold()
+                            .padding(3)
+                            if !spoilerAvoidanceMode {
+                                Text(episode!.plot)
+                                    .padding(3)
+                            }
+                            if !spoilerAvoidanceMode {
+                                HStack {
+                                    Spacer()
+                                    if let posterUrl = episode!.posterUrl {
+                                        AsyncImage(url: URL(string: posterUrl)) { phase in
+                                            switch phase {
+                                            case .empty:
+                                                ProgressView()
+                                                    .progressViewStyle(.circular)
+                                                    .frame(alignment: .center)
+                                            case .success(let image):
+                                                image
+                                                    .resizable()
+                                                    .aspectRatio(contentMode: .fit)
+                                                    .scaledToFit()
+                                                    .cornerRadius(5)
+                                            case .failure:
+                                                EmptyView()
+                                            @unknown default:
+                                                EmptyView()
+                                            }
+                                        }
+                                        .padding(.vertical)
+                                        Spacer()
+                                    }
+                                }
+                            }
                         }
+                    }
+                    .refreshable {
+                        fetchEpisode(initial: false)
                     }
                 }
                 Spacer()
             }
             .padding()
-            .navigationTitle(show.title)
+            .navigationTitle("\(show.title) (\(show.yearStart))")
         }
         .onAppear() {
             if let seasonRange = defaults.dictionary(forKey: "range-\(show.id)") as? Dictionary<String, Int> {
@@ -180,5 +195,5 @@ struct DetailView: View {
 }
 
 #Preview {
-    DetailView(seenEpisodes: .constant([:]), show: SampleShows[0])
+    DetailView(seenEpisodes: .constant([:]), show: SampleShows[0], spoilerAvoidanceMode: .constant(false))
 }

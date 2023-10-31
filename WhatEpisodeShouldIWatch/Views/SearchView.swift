@@ -16,14 +16,28 @@ struct SeenEpisode {
 
 struct SearchView: View {
     @State private var debounceTimer: Timer?
+    let defaults = UserDefaults.standard
     @State private var search = ""
     @FocusState private var searchFocused
     @State private var searchInFlight = false
     @State private var seenEpisodes: Dictionary<String, [SeenEpisode]> = [:]
     @State private var shows: [Show]
+    
+    @State var _spoilerAvoidanceMode: Bool
+    var spoilerAvoidanceMode: Binding<Bool> { Binding(
+        get: {
+                return _spoilerAvoidanceMode
+            },
+        set: {
+                _spoilerAvoidanceMode = $0
+                defaults.setValue($0, forKey: "spoilerAvoidanceMode")
+            }
+        )
+    }
 
     init(shows: [Show] = []) {
         self.shows = shows
+        self._spoilerAvoidanceMode = defaults.bool(forKey: "spoilerAvoidanceMode")
         UILabel.appearance(whenContainedInInstancesOf: [UINavigationBar.self]).adjustsFontSizeToFitWidth = true
     }
         
@@ -33,6 +47,7 @@ struct SearchView: View {
                 Colour.BACKGROUND.ignoresSafeArea()
                 VStack {
                     Form {
+                        Toggle("Spoiler Avoidance Mode™", isOn: spoilerAvoidanceMode)
                         TextField("Search for a TV show...", text: $search)
                             .focused($searchFocused)
                             .onAppear {
@@ -41,9 +56,9 @@ struct SearchView: View {
                             .onChange(of: search) {
                                 debounceTimer?.invalidate()
                                 debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
-                                    debounceTimer = nil
                                     Task {
                                         do {
+                                            debounceTimer = nil
                                             searchInFlight = true
                                             shows = try await APIWrapper.fetchShows(search: search)
                                         } catch {
@@ -55,8 +70,8 @@ struct SearchView: View {
                             }
                     }
                     .scrollContentBackground(.hidden)
-                    .navigationTitle("Select Show")
-                    .frame(height: 80)
+                    .navigationTitle("What Episode Should I Watch?")
+                    .frame(height: 130)
                     .padding(2)
                     
                     if searchInFlight {
@@ -72,7 +87,7 @@ struct SearchView: View {
                         } else {
                             List {
                                 ForEach(shows) { show in
-                                    NavigationLink(destination: DetailView(seenEpisodes: $seenEpisodes, show: show)) {
+                                    NavigationLink(destination: DetailView(seenEpisodes: $seenEpisodes, show: show, spoilerAvoidanceMode: $_spoilerAvoidanceMode)) {
                                         HStack {
                                             if let posterUrl = show.posterUrl {
                                                 CachedAsyncImage(url: URL(string: posterUrl)) { phase in
