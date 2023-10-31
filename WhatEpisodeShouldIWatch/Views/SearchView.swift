@@ -25,13 +25,13 @@ struct SearchView: View {
     @State private var seenEpisodes: [String: [SeenEpisode]] = [:]
     @State private var shows: [Show]
 
-    @State private var spoilerAvoidanceMode: Bool
-    private var spoilerAvoidanceModeInternal: Binding<Bool> { Binding(
+    @State private var spoilerAvoidanceModeInternal: Bool
+    private var spoilerAvoidanceMode: Binding<Bool> { Binding(
         get: {
-                return spoilerAvoidanceMode
+                return spoilerAvoidanceModeInternal
             },
         set: {
-                spoilerAvoidanceMode = $0
+                spoilerAvoidanceModeInternal = $0
                 defaults.setValue($0, forKey: "spoilerAvoidanceMode")
             }
         )
@@ -39,7 +39,7 @@ struct SearchView: View {
 
     init(shows: [Show] = []) {
         self.shows = shows
-        self.spoilerAvoidanceMode = defaults.bool(forKey: "spoilerAvoidanceMode")
+        self.spoilerAvoidanceModeInternal = defaults.bool(forKey: "spoilerAvoidanceMode")
         UILabel.appearance(whenContainedInInstancesOf: [UINavigationBar.self]).adjustsFontSizeToFitWidth = true
     }
 
@@ -71,7 +71,7 @@ struct SearchView: View {
                                     }
                                 }
                             }
-                        Toggle("Spoiler Avoidance Mode™", isOn: $spoilerAvoidanceMode)
+                        Toggle("Spoiler Avoidance Mode™", isOn: spoilerAvoidanceMode)
                     }
                     .scrollContentBackground(.hidden)
                     .navigationTitle("What Episode Should I Watch?")
@@ -97,7 +97,7 @@ struct SearchView: View {
                                     NavigationLink(destination: DetailView(
                                         seenEpisodes: $seenEpisodes,
                                         show: show,
-                                        spoilerAvoidanceMode: $spoilerAvoidanceMode)
+                                        spoilerAvoidanceMode: spoilerAvoidanceMode)
                                     ) {
                                         HStack {
                                             if let posterUrl = show.posterUrl {
