@@ -15,16 +15,18 @@ struct SeenEpisode {
 }
 
 struct SearchView: View {
-    @State private var debounceTimer: Timer?
     let defaults = UserDefaults.standard
+
+    @State private var debounceTimer: Timer?
+    @State private var isError = false
     @State private var search = ""
     @FocusState private var searchFocused
     @State private var searchInFlight = false
     @State private var seenEpisodes: [String: [SeenEpisode]] = [:]
     @State private var shows: [Show]
 
-    @State var spoilerAvoidanceMode: Bool
-    var spoilerAvoidanceModeInternal: Binding<Bool> { Binding(
+    @State private var spoilerAvoidanceMode: Bool
+    private var spoilerAvoidanceModeInternal: Binding<Bool> { Binding(
         get: {
                 return spoilerAvoidanceMode
             },
@@ -44,10 +46,9 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Colour.BACKGROUND.ignoresSafeArea()
+                Color(UIColor(named: "MainColor")!).ignoresSafeArea()
                 VStack {
                     Form {
-                        Toggle("Spoiler Avoidance Mode™", isOn: $spoilerAvoidanceMode)
                         TextField("Search for a TV show...", text: $search)
                             .focused($searchFocused)
                             .onAppear {
@@ -61,13 +62,16 @@ struct SearchView: View {
                                             debounceTimer = nil
                                             searchInFlight = true
                                             shows = try await APIWrapper.fetchShows(search: search)
+                                            isError = false
                                         } catch {
+                                            isError = true
                                             print(error)
                                         }
                                         searchInFlight = false
                                     }
                                 }
                             }
+                        Toggle("Spoiler Avoidance Mode™", isOn: $spoilerAvoidanceMode)
                     }
                     .scrollContentBackground(.hidden)
                     .navigationTitle("What Episode Should I Watch?")
@@ -79,7 +83,10 @@ struct SearchView: View {
                             .progressViewStyle(.circular)
                             .padding(.vertical)
                     } else if !search.isEmpty {
-                        if shows.count == 0 {
+                        if isError {
+                            Text("Something Went Wrong")
+                                .padding(.vertical)
+                        } else if shows.count == 0 {
                             if debounceTimer == nil {
                                 Text("No Results")
                                     .padding(.vertical)

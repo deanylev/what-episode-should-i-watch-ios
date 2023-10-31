@@ -8,19 +8,22 @@
 import SwiftUI
 
 struct DetailView: View {
-    let defaults = UserDefaults.standard
-    @State var episode: Episode?
-    @State var episodeHistory: [Episode] = []
-    @State var episodeHistoryIndex = -1
-    @State var isPresentRatingWebView = false
+    private let defaults = UserDefaults.standard
+
+    @State private var episode: Episode?
+    @State private var episodeHistory: [Episode] = []
+    @State private var episodeHistoryIndex = -1
+    @State private var isError = false
+    @State private var isPresentRatingWebView = false
+    @State private var seasonMax = -1
+    @State private var seasonMin = 1
+
     @Binding var seenEpisodes: [String: [SeenEpisode]]
-    @State var seasonMax = -1
-    @State var seasonMin = 1
     let show: Show
     @Binding var spoilerAvoidanceMode: Bool
 
     @MainActor
-    func fetchEpisode(initial: Bool) {
+    private func fetchEpisode(initial: Bool) {
         episode = nil
         Task {
             do {
@@ -63,20 +66,24 @@ struct DetailView: View {
                     episode: episode!.episode
                 ))
             } catch {
+                isError = true
                 print(error)
             }
         }
     }
 
-    func persistSeasonRange() {
+    private func persistSeasonRange() {
         defaults.set(["seasonMin": seasonMin, "seasonMax": seasonMax], forKey: "range-\(show.id)")
     }
 
     var body: some View {
         ZStack {
-            Colour.BACKGROUND.ignoresSafeArea()
+            Color(UIColor(named: "MainColor")!).ignoresSafeArea()
             VStack(alignment: .leading) {
-                if episode == nil {
+                if isError {
+                    Text("Something Went Wrong")
+                        .padding()
+                } else if episode == nil {
                     ProgressView()
                         .progressViewStyle(.circular)
                 } else {
@@ -101,7 +108,7 @@ struct DetailView: View {
                                 }, label: {
                                     Text("Another!")
                                 })
-                                .foregroundColor(Colour.ACCENT)
+                                .foregroundColor(Color(red: 224 / 255, green: 161 / 255, blue: 2 / 255))
                             }
                             HStack {
                                 Button(action: {
