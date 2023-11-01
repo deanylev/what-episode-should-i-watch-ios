@@ -54,14 +54,14 @@ struct SearchView: View {
                             .onAppear {
                                 searchFocused = true
                             }
-                            .onChange(of: search) {
+                            .onChange(of: search) { newValue in
                                 debounceTimer?.invalidate()
                                 debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
                                     Task {
                                         do {
                                             debounceTimer = nil
                                             searchInFlight = true
-                                            shows = try await APIWrapper.fetchShows(search: search)
+                                            shows = try await APIWrapper.fetchShows(search: newValue)
                                             isError = false
                                         } catch {
                                             isError = true

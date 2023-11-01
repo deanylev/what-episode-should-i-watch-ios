@@ -72,7 +72,7 @@ struct DetailView: View {
         }
     }
 
-    private func persistSeasonRange() {
+     private func persistSeasonRange(seasonMin: Int, seasonMax: Int) {
         defaults.set(["seasonMin": seasonMin, "seasonMax": seasonMax], forKey: "range-\(show.id)")
     }
 
@@ -95,14 +95,14 @@ struct DetailView: View {
                                         Text("Season \(season)").tag(season)
                                     }
                                 }
-                                .onChange(of: seasonMin) { persistSeasonRange() }
+                                .onChange(of: seasonMin) { newValue in persistSeasonRange(seasonMin: newValue, seasonMax: seasonMax) }
                                 Text("To")
                                 Picker("", selection: $seasonMax) {
                                     ForEach(seasonMin...episode!.totalSeasons, id: \.self) { season in
                                         Text("Season \(season)").tag(season)
                                     }
                                 }
-                                .onChange(of: seasonMax) { persistSeasonRange() }
+                                .onChange(of: seasonMax) { newValue in persistSeasonRange(seasonMin: seasonMin, seasonMax: newValue) }
                                 Button(action: {
                                     fetchEpisode(initial: false)
                                 }, label: {
