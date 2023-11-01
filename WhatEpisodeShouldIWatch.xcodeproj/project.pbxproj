@@ -57,6 +57,7 @@
 				39B07EE392B85E3F73409A88 /* Pods */,
 				9B8714D7BF5391EF198C7BDA /* Frameworks */,
 			);
+			indentWidth = 5;
 			sourceTree = "<group>";
 		};
 		05CC9DB02AEE631200A4BAE3 /* Products */ = {
