@@ -2,4 +2,4 @@
 Native iOS client for https://github.com/deanylev/what-episode-should-i-watch
 
 ## Running
-Open `WhatEpisodeShouldIWatch.xcodeproj` in Xcode
+Run `pod install` to install dependencies and Open `WhatEpisodeShouldIWatch.xcworkspace` in Xcode
