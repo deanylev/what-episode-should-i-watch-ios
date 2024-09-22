@@ -48,35 +48,43 @@ struct SearchView: View {
             ZStack {
                 Color(UIColor(named: "MainColor")!).ignoresSafeArea()
                 VStack {
-                    Form {
-                        TextField("Search for a TV show...", text: $search)
-                            .focused($searchFocused)
-                            .onAppear {
-                                searchFocused = true
-                            }
-                            .onChange(of: search) { newValue in
-                                debounceTimer?.invalidate()
-                                debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
-                                    Task {
-                                        do {
-                                            debounceTimer = nil
-                                            searchInFlight = true
-                                            shows = try await APIWrapper.fetchShows(search: newValue)
-                                            isError = false
-                                        } catch {
-                                            isError = true
-                                            print(error)
-                                        }
-                                        searchInFlight = false
-                                    }
-                                }
-                            }
-                        Toggle("Spoiler Avoidance Mode™", isOn: spoilerAvoidanceMode)
-                    }
-                    .scrollContentBackground(.hidden)
-                    .navigationTitle("What Episode Should I Watch?")
-                    .frame(height: 130)
-                    .padding(2)
+                     Text("What Episode Should I Watch?")
+                          .font(.system(size: 40).weight(.bold))
+                          .multilineTextAlignment(.center)
+                          .padding(20)
+                     TextField("Search for a TV show...", text: $search)
+                         .padding(.vertical, 10)
+                         .padding(.horizontal, 40)
+                         .background(Color.clear)
+                         .overlay(
+                           RoundedRectangle(cornerRadius: 20).stroke(Color.white)
+                              .padding(.horizontal, 20)
+                         )
+                         .focused($searchFocused)
+                         .onAppear {
+                             searchFocused = true
+                         }
+                         .onChange(of: search) { newValue in
+                             debounceTimer?.invalidate()
+                             debounceTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { _ in
+                                 Task {
+                                     do {
+                                         debounceTimer = nil
+                                         searchInFlight = true
+                                         shows = try await APIWrapper.fetchShows(search: newValue)
+                                         isError = false
+                                     } catch {
+                                         isError = true
+                                         print(error)
+                                     }
+                                     searchInFlight = false
+                                 }
+                             }
+                         }
+
+                     Toggle("Spoiler Avoidance Mode™", isOn: spoilerAvoidanceMode)
+                          .padding(.horizontal, 50)
+                          .padding(.vertical, 10)
 
                     if searchInFlight {
                         ProgressView()
@@ -130,6 +138,7 @@ struct SearchView: View {
                                                 .padding(.horizontal)
                                         }
                                     }
+                                    .listRowBackground(Color.clear)
                                 }
                             }
                             .scrollContentBackground(.hidden)
